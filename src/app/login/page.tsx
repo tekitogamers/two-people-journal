@@ -43,7 +43,7 @@ export default function LoginPage() {
       />
       <button
         onClick={handleLogin}
-        className="px-4 py-2 bg-pink-400 text-white rounded hover:bg-pink-500"
+        className="px-4 py-2 bg-pink-400 text-black rounded hover:bg-pink-500"
       >
         ログイン
       </button>
