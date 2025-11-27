@@ -13,7 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             ふたりのひみつ💞
           </h1>
           <nav className="flex gap-3 sm:gap-4 text-pink-500 font-semibold overflow-x-auto">
-            <Link className="whitespace-nowrap px-1" href="/calender">💌</Link>
+            <Link className="whitespace-nowrap px-1" href="/calender">📅</Link>
             <Link className="whitespace-nowrap px-1" href="/memories">📸</Link>
             <Link className="whitespace-nowrap px-1" href="/login">🔐</Link>
           </nav>

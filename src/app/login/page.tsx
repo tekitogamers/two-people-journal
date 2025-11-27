@@ -19,7 +19,7 @@ export default function LoginPage() {
       alert('ログイン失敗💦: ' + error.message);
     } else {
       alert('ログイン成功💖');
-      router.push('/messages'); // 成功したらひとこと画面へ
+      router.push('/memories'); // 成功したらひとこと画面へ
     }
   };
 
