@@ -1,10 +1,8 @@
-// MemoriesPage with true Instagram-like swipe carousel ✨
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { v4 as uuidv4 } from 'uuid';
-import { useRouter } from 'next/navigation';
 
 // -------------------- Types --------------------
 type MemoryImage = {
@@ -23,27 +21,49 @@ type Memory = {
   images: MemoryImage[];
 };
 
-export default function MemoriesPage() {
-  const router = useRouter();
+type ContainerRefs = {
+  [key: string]: HTMLDivElement | null;
+};
 
+export default function MemoriesPage() {
   const [memories, setMemories] = useState<Memory[]>([]);
-  const [newTitle, setNewTitle] = useState<string>('');
-  const [newDescription, setNewDescription] = useState<string>('');
+  const [newTitle, setNewTitle] = useState('');
+  const [newDescription, setNewDescription] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
 
-  // Active index per memory
   const [activeIndexes, setActiveIndexes] = useState<Record<string, number>>({});
+  const containerRefs = useRef<ContainerRefs>({});
 
-  // Refs for snap-to-slide
-  const containerRefs = useRef<Record<string, HTMLDivElement | null>>({});
-
-  // -------------------- Snap Scrolling --------------------
+  // -------------------- Snap Scroll --------------------
   const handleScroll = (memoryId: string, e: React.UIEvent<HTMLDivElement>) => {
     const container = e.currentTarget;
     const width = container.clientWidth;
     const index = Math.round(container.scrollLeft / width);
     setActiveIndexes((prev) => ({ ...prev, [memoryId]: index }));
+  };
+
+  const snapToIndex = (memoryId: string, index: number) => {
+    const container = containerRefs.current[memoryId];
+    if (!container) return;
+    container.scrollTo({ left: container.clientWidth * index, behavior: 'smooth' });
+  };
+
+  // -------------------- Buttons --------------------
+  const handleNext = (memoryId: string) => {
+    const currentIndex = activeIndexes[memoryId] ?? 0;
+    const memory = memories.find((m) => m.id === memoryId);
+    if (!memory) return;
+    const nextIndex = Math.min(currentIndex + 1, memory.images.length - 1);
+    setActiveIndexes((prev) => ({ ...prev, [memoryId]: nextIndex }));
+    snapToIndex(memoryId, nextIndex);
+  };
+
+  const handlePrev = (memoryId: string) => {
+    const currentIndex = activeIndexes[memoryId] ?? 0;
+    const prevIndex = Math.max(currentIndex - 1, 0);
+    setActiveIndexes((prev) => ({ ...prev, [memoryId]: prevIndex }));
+    snapToIndex(memoryId, prevIndex);
   };
 
   // -------------------- Load Memories --------------------
@@ -62,7 +82,6 @@ export default function MemoriesPage() {
       .in('memory_id', memoryData.map((m) => m.id));
 
     const safeImages = imageData ?? [];
-
     const merged: Memory[] = memoryData.map((m) => ({
       ...m,
       images: safeImages.filter((img) => img.memory_id === m.id),
@@ -89,7 +108,6 @@ export default function MemoriesPage() {
     const { error: memErr } = await supabase.from('memories').insert([
       { id: memoryId, user_id: userId, title: newTitle, description: newDescription },
     ]);
-
     if (memErr) {
       alert(memErr.message);
       return;
@@ -97,10 +115,7 @@ export default function MemoriesPage() {
 
     for (const file of files) {
       const fileName = `${uuidv4()}-${file.name}`;
-      const { error: uploadErr } = await supabase.storage
-        .from('couple-images')
-        .upload(fileName, file);
-
+      const { error: uploadErr } = await supabase.storage.from('couple-images').upload(fileName, file);
       if (!uploadErr) {
         const { data } = supabase.storage.from('couple-images').getPublicUrl(fileName);
         await supabase.from('memory_images').insert([
@@ -160,7 +175,7 @@ export default function MemoriesPage() {
 
       {/* Memories List */}
       <ul className="flex flex-col gap-4 w-full max-w-md">
-        {memories.map((m: Memory) => (
+        {memories.map((m) => (
           <li key={m.id} className="bg-pink-100 rounded px-3 py-2 text-black shadow">
             <strong>{m.title}</strong>
             {m.description && <p className="text-sm mt-1 whitespace-pre-wrap">{m.description}</p>}
@@ -179,31 +194,41 @@ export default function MemoriesPage() {
                   ))}
                 </div>
 
+                {/* Buttons */}
+                <div className="flex justify-between mb-1">
+                  <button
+                    onClick={() => handlePrev(m.id)}
+                    className="px-2 py-1 bg-pink-200 rounded hover:bg-pink-300"
+                  >
+                    ◀
+                  </button>
+                  <button
+                    onClick={() => handleNext(m.id)}
+                    className="px-2 py-1 bg-pink-200 rounded hover:bg-pink-300"
+                  >
+                    ▶
+                  </button>
+                </div>
+
                 {/* Carousel */}
-<div
-  ref={(el) => {
-    containerRefs.current[m.id] = el ?? null;
-  }}
-  className="mt-2 flex overflow-x-auto snap-x snap-mandatory w-full rounded-lg"
-  style={{
-    scrollSnapType: 'x mandatory',
-    scrollbarWidth: 'none',
-    WebkitOverflowScrolling: 'touch',
-  }}
-  onScroll={(e) => handleScroll(m.id, e)}
->
-  {m.images.map((img: MemoryImage) => (
-    <div key={img.id} className="snap-start flex-shrink-0 w-full h-64 relative">
-      <img src={img.image_path} className="w-full h-full object-cover rounded-lg" />
-    </div>
-  ))}
-</div>
+                <div
+                  ref={(el) => {
+                    containerRefs.current[m.id] = el; // ← ここが void に合う書き方！
+                  }}
+                  className="flex overflow-x-auto snap-x snap-mandatory w-full rounded-lg"
+                  style={{ scrollSnapType: 'x mandatory', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+                  onScroll={(e) => handleScroll(m.id, e)}
+                >
+                  {m.images.map((img) => (
+                    <div key={img.id} className="snap-start flex-shrink-0 w-full h-64 relative">
+                      <img src={img.image_path} className="w-full h-full object-cover rounded-lg" />
+                    </div>
+                  ))}
+                </div>
               </>
             )}
 
-            <div className="text-xs text-pink-700 mt-1">
-              {new Date(m.created_at).toLocaleString()}
-            </div>
+            <div className="text-xs text-pink-700 mt-1">{new Date(m.created_at).toLocaleString()}</div>
 
             <button
               onClick={() => handleDeleteMemory(m.id)}
