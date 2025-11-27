@@ -3,8 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { v4 as uuidv4 } from 'uuid';
+import { useSpring, animated } from '@react-spring/web';
+import { useGesture } from '@use-gesture/react';
 
-// -------------------- Types --------------------
 type MemoryImage = {
   id: string;
   memory_id: string;
@@ -31,40 +32,54 @@ export default function MemoriesPage() {
   const [newDescription, setNewDescription] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
-
   const [activeIndexes, setActiveIndexes] = useState<Record<string, number>>({});
   const containerRefs = useRef<ContainerRefs>({});
 
-  // -------------------- Snap Scroll --------------------
-  const handleScroll = (memoryId: string, e: React.UIEvent<HTMLDivElement>) => {
-    const container = e.currentTarget;
-    const width = container.clientWidth;
-    const index = Math.round(container.scrollLeft / width);
-    setActiveIndexes((prev) => ({ ...prev, [memoryId]: index }));
-  };
+  // -------------------- Image Modal --------------------
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [modalMemoryId, setModalMemoryId] = useState<string | null>(null);
+  const [modalIndex, setModalIndex] = useState(0);
+  const [modalImage, setModalImage] = useState<string | null>(null);
 
-  const snapToIndex = (memoryId: string, index: number) => {
-    const container = containerRefs.current[memoryId];
-    if (!container) return;
-    container.scrollTo({ left: container.clientWidth * index, behavior: 'smooth' });
-  };
+  const [{ x, y, scale }, api] = useSpring(() => ({ x: 0, y: 0, scale: 1 }));
 
-  // -------------------- Buttons --------------------
-  const handleNext = (memoryId: string) => {
-    const currentIndex = activeIndexes[memoryId] ?? 0;
-    const memory = memories.find((m) => m.id === memoryId);
-    if (!memory) return;
-    const nextIndex = Math.min(currentIndex + 1, memory.images.length - 1);
-    setActiveIndexes((prev) => ({ ...prev, [memoryId]: nextIndex }));
-    snapToIndex(memoryId, nextIndex);
-  };
+  const bind = useGesture(
+    {
+      onDrag: ({ offset: [dx, dy], last, memo }) => {
+        if (!memo) memo = { startX: dx };
+        const deltaX = dx - memo.startX;
 
-  const handlePrev = (memoryId: string) => {
-    const currentIndex = activeIndexes[memoryId] ?? 0;
-    const prevIndex = Math.max(currentIndex - 1, 0);
-    setActiveIndexes((prev) => ({ ...prev, [memoryId]: prevIndex }));
-    snapToIndex(memoryId, prevIndex);
-  };
+        api.start({ x: dx, y: dy });
+
+        if (last) {
+          // 横スワイプで左右切替
+          if (Math.abs(deltaX) > 50 && modalMemoryId !== null) {
+            const memory = memories.find((m) => m.id === modalMemoryId);
+            if (memory) {
+              if (deltaX < 0 && modalIndex < memory.images.length - 1) {
+                setModalIndex(modalIndex + 1);
+              } else if (deltaX > 0 && modalIndex > 0) {
+                setModalIndex(modalIndex - 1);
+              }
+            }
+          }
+          // 縦スワイプで閉じる
+          if (Math.abs(dy) > 200) {
+            setImageModalOpen(false);
+            setModalMemoryId(null);
+            api.start({ x: 0, y: 0, scale: 1 });
+          }
+          api.start({ x: 0, y: 0 });
+        }
+
+        return memo;
+      },
+      onPinch: ({ offset: [d] }) => {
+        api.start({ scale: 1 + d / 200 });
+      },
+    },
+    { drag: { from: () => [x.get(), y.get()] }, pinch: { scaleBounds: { min: 1, max: 3 } } }
+  );
 
   // -------------------- Load Memories --------------------
   async function loadMemories(uid: string) {
@@ -90,7 +105,6 @@ export default function MemoriesPage() {
     setMemories(merged);
   }
 
-  // -------------------- Auth Init --------------------
   useEffect(() => {
     (async () => {
       const { data } = await supabase.auth.getUser();
@@ -100,7 +114,6 @@ export default function MemoriesPage() {
     })();
   }, []);
 
-  // -------------------- Submit Memory --------------------
   const handleSendMemory = async () => {
     if (!userId) return;
     const memoryId = uuidv4();
@@ -108,10 +121,7 @@ export default function MemoriesPage() {
     const { error: memErr } = await supabase.from('memories').insert([
       { id: memoryId, user_id: userId, title: newTitle, description: newDescription },
     ]);
-    if (memErr) {
-      alert(memErr.message);
-      return;
-    }
+    if (memErr) return alert(memErr.message);
 
     for (const file of files) {
       const fileName = `${uuidv4()}-${file.name}`;
@@ -130,7 +140,6 @@ export default function MemoriesPage() {
     await loadMemories(userId);
   };
 
-  // -------------------- Delete Memory --------------------
   const handleDeleteMemory = async (id: string) => {
     if (!userId) return;
     await supabase.from('memory_images').delete().eq('memory_id', id);
@@ -182,46 +191,43 @@ export default function MemoriesPage() {
 
             {m.images.length > 0 && (
               <>
-                {/* Dots */}
                 <div className="flex justify-center gap-1 mt-2">
                   {m.images.map((_, idx) => (
                     <span
                       key={idx}
                       className={`w-2 h-2 rounded-full transition-all ${
-                        activeIndexes[m.id] === idx ? 'bg-pink-600 scale-110' : 'bg-pink-300'
+                        idx === (activeIndexes[m.id] ?? 0) ? 'bg-pink-600 scale-110' : 'bg-pink-300'
                       }`}
                     />
                   ))}
                 </div>
 
-                {/* Buttons */}
-                <div className="flex justify-between mb-1">
-                  <button
-                    onClick={() => handlePrev(m.id)}
-                    className="px-2 py-1 bg-pink-200 rounded hover:bg-pink-300"
-                  >
-                    ◀
-                  </button>
-                  <button
-                    onClick={() => handleNext(m.id)}
-                    className="px-2 py-1 bg-pink-200 rounded hover:bg-pink-300"
-                  >
-                    ▶
-                  </button>
-                </div>
-
                 {/* Carousel */}
                 <div
                   ref={(el) => {
-                    containerRefs.current[m.id] = el; // ← ここが void に合う書き方！
+                    containerRefs.current[m.id] = el ?? null;
                   }}
                   className="flex overflow-x-auto snap-x snap-mandatory w-full rounded-lg"
                   style={{ scrollSnapType: 'x mandatory', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
-                  onScroll={(e) => handleScroll(m.id, e)}
+                  onScroll={(e) => {
+                    const container = e.currentTarget;
+                    const index = Math.round(container.scrollLeft / container.clientWidth);
+                    setActiveIndexes((prev) => ({ ...prev, [m.id]: index }));
+                  }}
                 >
-                  {m.images.map((img) => (
+                  {m.images.map((img, idx) => (
                     <div key={img.id} className="snap-start flex-shrink-0 w-full h-64 relative">
-                      <img src={img.image_path} className="w-full h-full object-cover rounded-lg" />
+                      <img
+                        src={img.image_path}
+                        className="w-full h-full object-cover rounded-lg cursor-pointer"
+                        onClick={() => {
+                          setModalMemoryId(m.id);
+                          setModalIndex(idx);
+                          setModalImage(img.image_path);
+                          setImageModalOpen(true);
+                          api.start({ x: 0, y: 0, scale: 1 });
+                        }}
+                      />
                     </div>
                   ))}
                 </div>
@@ -239,6 +245,35 @@ export default function MemoriesPage() {
           </li>
         ))}
       </ul>
+
+      {/* Image Modal */}
+      {imageModalOpen && modalMemoryId !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+          <animated.div
+            {...bind()}
+            className="relative touch-none w-full max-w-[90vw] max-h-[90vh] flex items-center justify-center"
+            style={{ x, y, scale }}
+          >
+            {memories
+              .find((m) => m.id === modalMemoryId)
+              ?.images.map((img, idx) =>
+                idx === modalIndex ? (
+                  <img key={img.id} src={img.image_path} className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg" />
+                ) : null
+              )}
+            <button
+              className="absolute top-2 right-2 text-white text-2xl font-bold"
+              onClick={() => {
+                setImageModalOpen(false);
+                setModalMemoryId(null);
+                api.start({ x: 0, y: 0, scale: 1 });
+              }}
+            >
+              ×
+            </button>
+          </animated.div>
+        </div>
+      )}
     </main>
   );
 }
