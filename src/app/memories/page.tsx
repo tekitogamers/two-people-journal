@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 
 export default function MemoriesPage() {
   const router = useRouter();
-  const [memories, setMemories] = useState<{ id: string; title: string; description: string | null; image_path: string | null; created_at: string }[]>([]);
+  const [memories, setMemories] = useState<{ id: string; title: string; description: string | null; image_path: string | null; created_at: string; user_id: string }[]>([]);
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [file, setFile] = useState<File | null>(null);
@@ -77,25 +77,26 @@ export default function MemoriesPage() {
     }
   };
 
+  // 🗑 投稿削除
+  const handleDeleteMemory = async (id: string) => {
+    if (!userId) return;
+
+    const { error } = await supabase
+      .from('memories')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId); // 自分の投稿だけ削除可能
+
+    if (!error) {
+      await loadMemories(userId);
+    } else {
+      alert('削除失敗💦 ' + error.message);
+    }
+  };
+
   return (
     <main className="min-h-screen flex flex-col items-center justify-start gap-6 p-6 bg-pink-50">
-      {/* ナビゲーション */}
-      <nav className="flex gap-4 mb-4">
-        <button
-          onClick={() => router.push('/messages')}
-          className="px-4 py-2 bg-pink-400 text-white rounded hover:bg-pink-500"
-        >
-          ひとこと
-        </button>
-        <button
-          onClick={() => router.push('/memories')}
-          className="px-4 py-2 bg-pink-400 text-white rounded hover:bg-pink-500"
-        >
-          思い出
-        </button>
-      </nav>
-
-      <h1 className="text-2xl font-bold text-pink-500">思い出💖</h1>
+      <h1 className="text-2xl font-bold text-pink-500">思い出📸</h1>
 
       <div className="flex flex-col gap-2 w-full max-w-md">
         <input
@@ -115,7 +116,7 @@ export default function MemoriesPage() {
         <input
           type="file"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          className="border rounded px-2 py-1"
+          className="border rounded px-2 py-1 text-black"
         />
         <button
           onClick={handleSendMemory}
@@ -132,6 +133,16 @@ export default function MemoriesPage() {
             {m.description && <p className="text-sm mt-1">{m.description}</p>}
             {m.image_path && <img src={m.image_path} alt="Memory" className="max-w-xs mt-2 rounded shadow" />}
             <div className="text-xs text-pink-700 mt-1">{new Date(m.created_at).toLocaleString()}</div>
+
+            {/* 自分の投稿だけ削除ボタンを表示 */}
+            {m.user_id === userId && (
+              <button
+                onClick={() => handleDeleteMemory(m.id)}
+                className="mt-2 px-2 py-1 bg-red-400 text-white rounded hover:bg-red-500"
+              >
+                削除
+              </button>
+            )}
           </li>
         ))}
       </ul>

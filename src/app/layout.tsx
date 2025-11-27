@@ -8,17 +8,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ja">
       <body className="bg-pink-50 min-h-screen text-pink-900">
         {/* ナビゲーション */}
-        <header className="w-full bg-white shadow-sm py-3 px-6 flex justify-between items-center">
-          <h1 className="text-xl font-bold text-pink-500">ふたりのひみつアプリ💞</h1>
-          <nav className="flex gap-4 text-pink-500 font-semibold">
-            <Link href="/messages">ひとこと💬</Link>
-            <Link href="/memories">思い出📸</Link>
-            <Link href="/login">ログイン🔐</Link>
+        <header className="w-full bg-pink-50 shadow-sm py-3 px-4 sm:px-6 flex justify-between items-center">
+          <h1 className="text-sm sm:text-xl font-bold text-pink-500 truncate">
+            ふたりのひみつ💞
+          </h1>
+          <nav className="flex gap-3 sm:gap-4 text-pink-500 font-semibold overflow-x-auto">
+            <Link className="whitespace-nowrap px-1" href="/messages">💌</Link>
+            <Link className="whitespace-nowrap px-1" href="/memories">📸</Link>
+            <Link className="whitespace-nowrap px-1" href="/login">🔐</Link>
           </nav>
         </header>
 
         {/* メインコンテンツ */}
-        <main className="p-6">{children}</main>
+        <main className="p-4 sm:p-6 bg-pink-50">{children}</main>
       </body>
     </html>
   );

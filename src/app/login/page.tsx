@@ -24,26 +24,26 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center gap-4 p-4 bg-pink-50">
-      <h1 className="text-2xl font-bold text-black">ログイン💌</h1>
+    <main className="min-h-screen flex flex-col items-center justify-center gap-4 p-4 sm:p-6 bg-pink-50">
+      <h1 className="text-2xl sm:text-3xl font-bold text-black">ログイン💌</h1>
 
       <input
         type="email"
         placeholder="メールアドレス"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        className="border rounded px-2 py-1 w-64 text-black placeholder-gray-500"
+        className="border rounded px-2 py-1 w-full max-w-md text-black placeholder-gray-500"
       />
       <input
         type="password"
         placeholder="パスワード"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        className="border rounded px-2 py-1 w-64 text-black placeholder-gray-500"
+        className="border rounded px-2 py-1 w-full max-w-md text-black placeholder-gray-500"
       />
       <button
         onClick={handleLogin}
-        className="px-4 py-2 bg-pink-400 text-black rounded hover:bg-pink-500"
+        className="px-3 py-2 sm:px-4 sm:py-2 bg-pink-400 text-white rounded hover:bg-pink-500"
       >
         ログイン
       </button>
