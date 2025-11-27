@@ -32,14 +32,14 @@ export default function LoginPage() {
         placeholder="メールアドレス"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        className="border rounded px-2 py-1 w-64"
+        className="border rounded px-2 py-1 w-64 text-black placeholder-gray-500"
       />
       <input
         type="password"
         placeholder="パスワード"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        className="border rounded px-2 py-1 w-64"
+        className="border rounded px-2 py-1 w-64 text-black placeholder-gray-500"
       />
       <button
         onClick={handleLogin}
