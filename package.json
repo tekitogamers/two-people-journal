@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.84.0",
+    "date-fns": "^4.1.0",
+    "dayjs": "^1.11.19",
     "embla-carousel-react": "^8.6.0",
     "next": "16.0.4",
     "react": "19.2.0",
@@ -19,6 +21,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/date-fns": "^2.5.3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-calendar": "^3.9.0",
