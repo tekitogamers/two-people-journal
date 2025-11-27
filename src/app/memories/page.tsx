@@ -131,7 +131,7 @@ export default function MemoriesPage() {
           <li key={m.id} className="bg-pink-100 rounded px-2 py-1 text-black">
             <strong>{m.title}</strong>
             {m.description && <p className="text-sm mt-1">{m.description}</p>}
-            {m.image_path && <img src={m.image_path} alt="Memory" className="max-w-xs mt-2 rounded shadow" />}
+            {m.image_path && <img src={m.image_path} alt="Memory" className="w-full max-w-md mt-2 rounded shadow object-contain" />}
             <div className="text-xs text-pink-700 mt-1">{new Date(m.created_at).toLocaleString()}</div>
 
             {/* 自分の投稿だけ削除ボタンを表示 */}
