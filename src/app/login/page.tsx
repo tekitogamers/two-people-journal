@@ -25,7 +25,7 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center gap-4 p-4 bg-pink-50">
-      <h1 className="text-2xl font-bold">ログイン💌</h1>
+      <h1 className="text-2xl font-bold text-black">ログイン💌</h1>
 
       <input
         type="email"
